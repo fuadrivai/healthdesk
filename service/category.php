@@ -39,13 +39,42 @@ function createCategory(string $name, string $severity, ?string $colorBadge): bo
     $stmt = $conn->prepare($sql);
 
     if ($stmt === false) {
-        die("Prepare Error : ".$conn->error);
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Prepare statement failed.',
+            'mysql_errno' => $conn->errno,
+            'mysql_error' => $conn->error,
+            'sql' => $sql,
+        ], 500);
     }
 
-    $stmt->bind_param("sss", $name, $severity, $colorBadge);
+    if (!$stmt->bind_param("sss", $name, $severity, $colorBadge)) {
+        $stmt->close();
+
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Bind parameter failed.',
+            'mysql_errno' => $stmt->errno,
+            'mysql_error' => $stmt->error,
+        ], 500);
+    }
 
     if (!$stmt->execute()) {
-        die("Execute Error : ".$stmt->error);
+        $error = [
+            'success' => false,
+            'message' => 'Execute failed.',
+            'mysql_errno' => $stmt->errno,
+            'mysql_error' => $stmt->error,
+            'data' => [
+                'name' => $name,
+                'severity' => $severity,
+                'color_badge' => $colorBadge,
+            ],
+        ];
+
+        $stmt->close();
+
+        sendJsonResponse($error, 500);
     }
 
     $stmt->close();
