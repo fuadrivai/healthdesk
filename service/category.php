@@ -31,20 +31,26 @@ function getCategories(): array
 
 function createCategory(string $name, string $severity, ?string $colorBadge): bool
 {
-	global $conn;
+    global $conn;
 
-	$sql = 'INSERT INTO sick_category (name, severity, color_badge) VALUES (?, ?, ?)';
-	$stmt = $conn->prepare($sql);
+    $sql = "INSERT INTO sick_category (name, severity, color_badge)
+            VALUES (?, ?, ?)";
 
-	if ($stmt === false) {
-		return false;
-	}
+    $stmt = $conn->prepare($sql);
 
-	$stmt->bind_param('sss', $name, $severity, $colorBadge);
-	$ok = $stmt->execute();
-	$stmt->close();
+    if ($stmt === false) {
+        die("Prepare Error : ".$conn->error);
+    }
 
-	return $ok;
+    $stmt->bind_param("sss", $name, $severity, $colorBadge);
+
+    if (!$stmt->execute()) {
+        die("Execute Error : ".$stmt->error);
+    }
+
+    $stmt->close();
+
+    return true;
 }
 
 function updateCategory(int $id, string $name, string $severity, ?string $colorBadge): bool
