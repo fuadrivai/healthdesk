@@ -162,6 +162,19 @@ $(document).ready(function () {
     };
   }
 
+  function exportVisitorsToExcel() {
+    var filters = getVisitorFilters();
+    var query = $.param({
+      action: "visitor_export",
+      search: filters.search,
+      division: filters.division,
+      start_date: filters.start_date,
+      end_date: filters.end_date,
+    });
+
+    window.location.href = "service/healthdesk.php?" + query;
+  }
+
   function resetVisitorForm() {
     $visitorForm[0].reset();
     $visitorId.val("");
@@ -533,6 +546,10 @@ $(document).ready(function () {
 
   $visitorEndDate.on("change", function () {
     loadVisitors();
+  });
+
+  $(document).on("click", "#exportVisitorBtn", function () {
+    exportVisitorsToExcel();
   });
 
   $("#openStudentPickerBtn").on("click", function () {

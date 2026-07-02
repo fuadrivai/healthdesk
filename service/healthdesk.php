@@ -138,6 +138,197 @@ function getVisitors(array $filters = []): array
 	return $rows;
 }
 
+function escapeExcelCell($value): string
+{
+	$text = (string)($value ?? '');
+	if ($text !== '' && preg_match('/^[=+\-@]/', $text) === 1) {
+		$text = "'" . $text;
+	}
+
+	return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+}
+
+function outputVisitorExcel(array $filters = []): void
+{
+	$rows = getVisitors($filters);
+	$fileName = 'visitor_export_' . date('Ymd_His') . '.xls';
+
+	header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+	header('Content-Disposition: attachment; filename="' . $fileName . '"');
+	header('Pragma: no-cache');
+	header('Expires: 0');
+
+	echo "<html><head><meta charset=\"UTF-8\"></head><body>";
+	echo '<table border="1">';
+	echo '<thead><tr>';
+	echo '<th>No</th>';
+	echo '<th>Name</th>';
+	echo '<th>Level</th>';
+	echo '<th>Grade</th>';
+	echo '<th>Category</th>';
+	echo '<th>Date</th>';
+	echo '<th>Time</th>';
+	echo '<th>Accidental</th>';
+	echo '<th>Status</th>';
+	echo '<th>Result</th>';
+	echo '<th>Item Used</th>';
+	echo '<th>Note</th>';
+	echo '</tr></thead>';
+	echo '<tbody>';
+
+	if (count($rows) === 0) {
+		echo '<tr><td colspan="12">No visitor data found.</td></tr>';
+	} else {
+		foreach ($rows as $index => $row) {
+			$statusCode = (int)($row['status'] ?? 0);
+			$statusLabel = 'Waiting';
+			if ($statusCode === 1) {
+				$statusLabel = 'Treatment';
+			} elseif ($statusCode === 2) {
+				$statusLabel = 'Recovered';
+			}
+
+			echo '<tr>';
+			echo '<td>' . ($index + 1) . '</td>';
+			echo '<td>' . escapeExcelCell($row['name'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['level'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['grade'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['category_name'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['date'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['time'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['accidental'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($statusLabel) . '</td>';
+			echo '<td>' . escapeExcelCell($row['result'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['item_used'] ?? '') . '</td>';
+			echo '<td>' . escapeExcelCell($row['note'] ?? '') . '</td>';
+			echo '</tr>';
+		}
+	}
+
+	echo '</tbody></table>';
+	echo '</body></html>';
+	exit;
+}
+
+function getDashboardData(): array
+{
+	global $conn;
+
+	$summary = [
+		'todayVisitors' => 0,
+		'todaySick' => 0,
+		'waiting' => 0,
+		'recovered' => 0,
+		'treatment' => 0,
+	];
+
+	$summarySql = "SELECT
+		COUNT(*) AS today_visitors,
+		COUNT(DISTINCT CASE WHEN student_id IS NOT NULL AND student_id > 0 THEN student_id END) AS today_sick,
+		SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS waiting_total,
+		SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS treatment_total,
+		SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS recovered_total
+	FROM visitor
+	WHERE `date` = CURDATE()";
+
+	$summaryResult = $conn->query($summarySql);
+	if ($summaryResult !== false) {
+		$row = $summaryResult->fetch_assoc();
+		$summary['todayVisitors'] = (int)($row['today_visitors'] ?? 0);
+		$summary['todaySick'] = (int)($row['today_sick'] ?? 0);
+		$summary['waiting'] = (int)($row['waiting_total'] ?? 0);
+		$summary['treatment'] = (int)($row['treatment_total'] ?? 0);
+		$summary['recovered'] = (int)($row['recovered_total'] ?? 0);
+	}
+
+	$trendMap = [];
+	$trendSql = "SELECT
+		DATE_FORMAT(`date`, '%Y-%m-%d') AS day_key,
+		COUNT(*) AS visitors_total,
+		COUNT(DISTINCT CASE WHEN student_id IS NOT NULL AND student_id > 0 THEN student_id END) AS sick_total
+	FROM visitor
+	WHERE `date` BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+	GROUP BY `date`
+	ORDER BY `date` ASC";
+
+	$trendResult = $conn->query($trendSql);
+	if ($trendResult !== false) {
+		while ($row = $trendResult->fetch_assoc()) {
+			$key = (string)($row['day_key'] ?? '');
+			if ($key !== '') {
+				$trendMap[$key] = [
+					'visitors' => (int)($row['visitors_total'] ?? 0),
+					'sick' => (int)($row['sick_total'] ?? 0),
+				];
+			}
+		}
+	}
+
+	$trend = [];
+	$startTs = strtotime('-6 day');
+	for ($i = 0; $i < 7; $i++) {
+		$dayTs = strtotime('+' . $i . ' day', $startTs);
+		$key = date('Y-m-d', $dayTs);
+		$trend[] = [
+			'date' => $key,
+			'label' => date('D', $dayTs),
+			'visitors' => (int)($trendMap[$key]['visitors'] ?? 0),
+			'sick' => (int)($trendMap[$key]['sick'] ?? 0),
+		];
+	}
+
+	$categories = [];
+	$categorySql = "SELECT
+		COALESCE(sick_category.name, 'Unknown') AS category_name,
+		COUNT(*) AS total
+	FROM visitor
+	LEFT JOIN sick_category ON visitor.sick_category_id = sick_category.id
+	WHERE visitor.`date` >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+	GROUP BY visitor.sick_category_id, sick_category.name
+	ORDER BY total DESC
+	LIMIT 5";
+
+	$categoryResult = $conn->query($categorySql);
+	if ($categoryResult !== false) {
+		while ($row = $categoryResult->fetch_assoc()) {
+			$categories[] = [
+				'name' => (string)($row['category_name'] ?? 'Unknown'),
+				'total' => (int)($row['total'] ?? 0),
+			];
+		}
+	}
+
+	$recent = [];
+	$recentSql = "SELECT
+		visitor.id,
+		visitor.`date`,
+		visitor.`time`,
+		visitor.name,
+		visitor.`level`,
+		visitor.grade,
+		visitor.status,
+		COALESCE(sick_category.name, '-') AS category_name
+	FROM visitor
+	LEFT JOIN sick_category ON visitor.sick_category_id = sick_category.id
+	ORDER BY visitor.id DESC
+	LIMIT 5";
+
+	$recentResult = $conn->query($recentSql);
+	if ($recentResult !== false) {
+		while ($row = $recentResult->fetch_assoc()) {
+			$recent[] = $row;
+		}
+	}
+
+	return [
+		'summary' => $summary,
+		'trend' => $trend,
+		'categories' => $categories,
+		'recent' => $recent,
+		'generatedAt' => date('c'),
+	];
+}
+
 function getVisitorById(int $id): ?array
 {
 	global $conn;
@@ -473,6 +664,23 @@ function handleHealthdeskRequest(): void
 			'success' => true,
 			'data' => $rows,
 			'count' => count($rows),
+		]);
+	}
+
+	if ($action === 'visitor_export') {
+		outputVisitorExcel([
+			'search' => trim((string)($_GET['search'] ?? '')),
+			'division' => trim((string)($_GET['division'] ?? '')),
+			'start_date' => trim((string)($_GET['start_date'] ?? '')),
+			'end_date' => trim((string)($_GET['end_date'] ?? '')),
+		]);
+	}
+
+	if ($action === 'dashboard') {
+		$data = getDashboardData();
+		sendJsonResponse([
+			'success' => true,
+			'data' => $data,
 		]);
 	}
 

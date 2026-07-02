@@ -34,7 +34,7 @@ function getStudentPaginatedData(int $page = 1, int $limit = 10): array
 
 	if ($hasSearch) {
 		$searchLike = $conn->real_escape_string($search);
-		$searchSql = " WHERE CAST(student.id AS CHAR) LIKE '%{$searchLike}%' OR COALESCE(student.rfidid, '') LIKE '%{$searchLike}%' OR COALESCE(student.nis, '') LIKE '%{$searchLike}%' OR student.student_name LIKE '%{$searchLike}%' OR COALESCE(student.grade, '') LIKE '%{$searchLike}%' OR CAST(student.level_id AS CHAR) LIKE '%{$searchLike}%' OR COALESCE(student.phone, '') LIKE '%{$searchLike}%' OR COALESCE(levell.level_name, '') LIKE '%{$searchLike}%'";
+		$searchSql = " WHERE CAST(student.id AS CHAR) LIKE '%{$searchLike}%' OR COALESCE(student.nis, '') LIKE '%{$searchLike}%' OR student.student_name LIKE '%{$searchLike}%' OR COALESCE(student.grade, '') LIKE '%{$searchLike}%' OR CAST(student.`level` AS CHAR) LIKE '%{$searchLike}%' OR COALESCE(levell.level_name, '') LIKE '%{$searchLike}%'";
 	}
 
 	$totalSql = 'SELECT COUNT(*) AS total FROM student LEFT JOIN levell ON student.`level` = levell.id_level' . $searchSql;

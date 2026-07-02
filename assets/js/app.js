@@ -199,35 +199,182 @@ $(document).ready(function () {
   });
 
   // ============================================
-  // SEARCH FILTER DEMO (Visitor & Student)
+  // DASHBOARD - REAL DATA
   // ============================================
-  $("#visitorSearch").on("keyup", function () {
-    var val = $(this).val().toLowerCase();
-    $("#visitorTable tbody tr").filter(function () {
-      $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
-    });
-  });
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-  $("#studentSearch").on("keyup", function () {
-    var val = $(this).val().toLowerCase();
-    $("#studentTable tbody tr").filter(function () {
-      $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
-    });
-  });
+  function formatDashboardDate(dateValue) {
+    var dateObj = new Date(dateValue);
+    if (Number.isNaN(dateObj.getTime())) {
+      return "Today";
+    }
 
-  // ============================================
-  // CHART.JS - Visitor Chart
-  // ============================================
-  var ctx1 = document.getElementById("visitorChart");
-  if (ctx1) {
-    new Chart(ctx1, {
+    return dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function formatVisitTime(dateValue, timeValue) {
+    var value = String(timeValue || "").trim();
+    if (value === "") {
+      return "-";
+    }
+
+    var parsed = new Date(String(dateValue || "") + "T" + value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+
+  function renderStatusBadge(status) {
+    var code = Number(status || 0);
+    if (code === 1) {
+      return '<span class="badge badge-modern badge-status-treatment">Treatment</span>';
+    }
+    if (code === 2) {
+      return '<span class="badge badge-modern badge-status-recovered">Recovered</span>';
+    }
+    return '<span class="badge badge-modern badge-status-waiting">Waiting</span>';
+  }
+
+  function renderIllnessCategories(items) {
+    var $container = $("#dashboardIllnessList");
+    if (!$container.length) {
+      return;
+    }
+
+    var rows = Array.isArray(items) ? items : [];
+    if (!rows.length) {
+      $container.html(
+        '<div class="item"><span class="label">No data</span><div class="bar-track"><div class="bar-fill" style="width:0%;"></div></div><span class="value">0%</span></div>',
+      );
+      return;
+    }
+
+    var maxCount = 0;
+    rows.forEach(function (row) {
+      maxCount = Math.max(maxCount, Number(row.total || 0));
+    });
+
+    if (maxCount <= 0) {
+      maxCount = 1;
+    }
+
+    var html = "";
+    rows.forEach(function (row) {
+      var total = Number(row.total || 0);
+      var percent = Math.round((total / maxCount) * 100);
+      html +=
+        '<div class="item">' +
+        '<span class="label">' +
+        escapeHtml(row.name || "Unknown") +
+        "</span>" +
+        '<div class="bar-track"><div class="bar-fill" style="width:' +
+        percent +
+        '%;"></div></div>' +
+        '<span class="value">' +
+        total +
+        "</span>" +
+        "</div>";
+    });
+
+    $container.html(html);
+  }
+
+  function renderRecentVisitors(rows) {
+    var $tbody = $("#dashboardRecentVisitorsBody");
+    if (!$tbody.length) {
+      return;
+    }
+
+    var visitors = Array.isArray(rows) ? rows : [];
+    if (!visitors.length) {
+      $tbody.html(
+        '<tr><td colspan="6" class="text-center py-4 text-muted">No visitor data found.</td></tr>',
+      );
+      return;
+    }
+
+    var html = "";
+    visitors.forEach(function (row) {
+      var level = String(row.level || "-").trim();
+      var grade = String(row.grade || "-").trim();
+
+      html +=
+        "<tr>" +
+        '<td><span class="small">' +
+        escapeHtml(formatVisitTime(row.date, row.time)) +
+        "</span></td>" +
+        "<td><strong>" +
+        escapeHtml(row.name || "-") +
+        "</strong></td>" +
+        "<td>" +
+        escapeHtml(level + " / " + grade) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(row.category_name || "-") +
+        "</td>" +
+        "<td>" +
+        renderStatusBadge(row.status) +
+        "</td>" +
+        '<td><a href="javascript:void(0)" class="btn btn-view" data-page="list-visitor"><i class="bi bi-eye"></i></a></td>' +
+        "</tr>";
+    });
+
+    $tbody.html(html);
+  }
+
+  var visitorChartInstance = null;
+
+  function renderVisitorTrendChart(trendRows) {
+    var ctx1 = document.getElementById("visitorChart");
+    if (!ctx1) {
+      return;
+    }
+
+    var rows = Array.isArray(trendRows) ? trendRows : [];
+    var labels = rows.map(function (row) {
+      return row.label || "-";
+    });
+    var visitorsData = rows.map(function (row) {
+      return Number(row.visitors || 0);
+    });
+    var sickData = rows.map(function (row) {
+      return Number(row.sick || 0);
+    });
+
+    if (visitorChartInstance) {
+      visitorChartInstance.data.labels = labels;
+      visitorChartInstance.data.datasets[0].data = visitorsData;
+      visitorChartInstance.data.datasets[1].data = sickData;
+      visitorChartInstance.update();
+      return;
+    }
+
+    visitorChartInstance = new Chart(ctx1, {
       type: "bar",
       data: {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        labels: labels,
         datasets: [
           {
             label: "Visitors",
-            data: [32, 45, 38, 52, 48, 30, 20],
+            data: visitorsData,
             backgroundColor: "rgba(79, 142, 247, 0.25)",
             borderColor: "#4F8EF7",
             borderWidth: 2,
@@ -236,7 +383,7 @@ $(document).ready(function () {
           },
           {
             label: "Sick Students",
-            data: [12, 18, 14, 22, 23, 10, 6],
+            data: sickData,
             backgroundColor: "rgba(229, 115, 115, 0.20)",
             borderColor: "#E57373",
             borderWidth: 2,
@@ -269,6 +416,7 @@ $(document).ready(function () {
               color: "rgba(79, 142, 247, 0.04)",
             },
             ticks: {
+              precision: 0,
               font: {
                 family: "Poppins",
                 size: 10,
@@ -289,6 +437,62 @@ $(document).ready(function () {
         },
       },
     });
+  }
+
+  function loadDashboardData() {
+    $.ajax({
+      url: "service/healthdesk.php",
+      type: "GET",
+      dataType: "json",
+      data: {
+        action: "dashboard",
+      },
+    })
+      .done(function (response) {
+        if (!response || !response.success || !response.data) {
+          return;
+        }
+
+        var data = response.data;
+        var summary = data.summary || {};
+
+        $("#dashboardTodayVisitors").text(Number(summary.todayVisitors || 0));
+        $("#dashboardSickToday").text(Number(summary.todaySick || 0));
+        $("#dashboardWaitingToday").text(Number(summary.waiting || 0));
+        $("#dashboardRecoveredToday").text(Number(summary.recovered || 0));
+        $("#dashboardTodayBadge").html(
+          '<i class="bi bi-calendar3 me-1"></i> ' +
+            escapeHtml(formatDashboardDate(data.generatedAt)),
+        );
+
+        renderVisitorTrendChart(data.trend || []);
+        renderIllnessCategories(data.categories || []);
+        renderRecentVisitors(data.recent || []);
+      })
+      .fail(function () {
+        $("#dashboardTodayVisitors").text("0");
+        $("#dashboardSickToday").text("0");
+        $("#dashboardWaitingToday").text("0");
+        $("#dashboardRecoveredToday").text("0");
+      });
+  }
+
+  $(document).on(
+    "click",
+    '[data-page="dashboard"], [ata-page="dashboard"]',
+    function () {
+      loadDashboardData();
+    },
+  );
+
+  loadDashboardData();
+
+  // ============================================
+  // CHART.JS - Visitor Chart
+  // ============================================
+  var ctx1 = document.getElementById("visitorChart");
+  if (ctx1 && !visitorChartInstance) {
+    renderVisitorTrendChart([]);
   }
 
   // ============================================

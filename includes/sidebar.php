@@ -60,11 +60,11 @@
                     <i class="bi bi-plus-circle"></i> Input Visitor
                 </a>
             </li>
-            <li class="nav-item">
+            <!-- <li class="nav-item">
                 <a class="nav-link" data-page="report" href="javascript:void(0)">
                     <i class="bi bi-file-earmark-bar-graph"></i> Report
                 </a>
-            </li>
+            </li> -->
         </ul>
     </nav>
 

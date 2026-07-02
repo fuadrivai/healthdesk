@@ -52,8 +52,9 @@
                         </nav>
                     </div>
                     <div class="mt-2 mt-sm-0">
-                        <span class="badge bg-soft-primary text-primary-custom px-3 py-2 rounded-pill">
-                            <i class="bi bi-calendar3 me-1"></i> Today, Jul 1, 2026
+                        <span class="badge bg-soft-primary text-primary-custom px-3 py-2 rounded-pill"
+                            id="dashboardTodayBadge">
+                            <i class="bi bi-calendar3 me-1"></i> Today
                         </span>
                     </div>
                 </div>
@@ -66,7 +67,7 @@
                                 <i class="bi bi-person-check"></i>
                             </div>
                             <div>
-                                <div class="stat-number">48</div>
+                                <div class="stat-number" id="dashboardTodayVisitors">0</div>
                                 <div class="stat-label">Today's Visitors</div>
                                 <div class="stat-trend up"><i class="bi bi-arrow-up-short"></i> +12%</div>
                             </div>
@@ -80,7 +81,7 @@
                                 <i class="bi bi-heart-pulse"></i>
                             </div>
                             <div>
-                                <div class="stat-number">23</div>
+                                <div class="stat-number" id="dashboardSickToday">0</div>
                                 <div class="stat-label">Students Sick Today</div>
                                 <div class="stat-trend up"><i class="bi bi-arrow-up-short"></i> +5%</div>
                             </div>
@@ -94,7 +95,7 @@
                                 <i class="bi bi-clock-history"></i>
                             </div>
                             <div>
-                                <div class="stat-number">12</div>
+                                <div class="stat-number" id="dashboardWaitingToday">0</div>
                                 <div class="stat-label">Waiting</div>
                                 <div class="stat-trend down"><i class="bi bi-arrow-down-short"></i> -3%</div>
                             </div>
@@ -108,7 +109,7 @@
                                 <i class="bi bi-check-circle"></i>
                             </div>
                             <div>
-                                <div class="stat-number">31</div>
+                                <div class="stat-number" id="dashboardRecoveredToday">0</div>
                                 <div class="stat-label">Recovered</div>
                                 <div class="stat-trend up"><i class="bi bi-arrow-up-short"></i> +8%</div>
                             </div>
@@ -142,41 +143,13 @@
                                 Common Illness Categories
                             </div>
                             <div class="card-body">
-                                <div class="progress-illness">
+                                <div class="progress-illness" id="dashboardIllnessList">
                                     <div class="item">
-                                        <span class="label">Fever</span>
+                                        <span class="label">Loading...</span>
                                         <div class="bar-track">
-                                            <div class="bar-fill" style="width:65%;"></div>
+                                            <div class="bar-fill" style="width:0%;"></div>
                                         </div>
-                                        <span class="value">65%</span>
-                                    </div>
-                                    <div class="item">
-                                        <span class="label">Headache</span>
-                                        <div class="bar-track">
-                                            <div class="bar-fill" style="width:42%;"></div>
-                                        </div>
-                                        <span class="value">42%</span>
-                                    </div>
-                                    <div class="item">
-                                        <span class="label">Stomachache</span>
-                                        <div class="bar-track">
-                                            <div class="bar-fill" style="width:28%;"></div>
-                                        </div>
-                                        <span class="value">28%</span>
-                                    </div>
-                                    <div class="item">
-                                        <span class="label">Cough</span>
-                                        <div class="bar-track">
-                                            <div class="bar-fill" style="width:52%;"></div>
-                                        </div>
-                                        <span class="value">52%</span>
-                                    </div>
-                                    <div class="item">
-                                        <span class="label">Allergy</span>
-                                        <div class="bar-track">
-                                            <div class="bar-fill" style="width:35%;"></div>
-                                        </div>
-                                        <span class="value">35%</span>
+                                        <span class="value">0%</span>
                                     </div>
                                 </div>
                             </div>
@@ -209,94 +182,10 @@
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody id="dashboardRecentVisitorsBody">
                                             <tr>
-                                                <td><span class="small">09:30 AM</span>
-                                                </td>
-                                                <td><strong>Amanda Clark</strong></td>
-                                                <td>10A</td>
-                                                <td>Fever, Headache</td>
-                                                <td><span class="badge badge-modern badge-status-waiting">Waiting</span>
-                                                </td>
-                                                <td>
-                                                    <div class="action-btns d-flex gap-1">
-                                                        <button class="btn btn-view" data-bs-toggle="tooltip"
-                                                            title="View"><i class="bi bi-eye"></i></button>
-                                                        <button class="btn btn-edit" data-bs-toggle="tooltip"
-                                                            title="Edit"><i class="bi bi-pencil"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="small">10:15 AM</span>
-                                                </td>
-                                                <td><strong>Michael Tan</strong></td>
-                                                <td>11B</td>
-                                                <td>Stomachache</td>
-                                                <td><span
-                                                        class="badge badge-modern badge-status-treatment">Treatment</span>
-                                                </td>
-                                                <td>
-                                                    <div class="action-btns d-flex gap-1">
-                                                        <button class="btn btn-view" data-bs-toggle="tooltip"
-                                                            title="View"><i class="bi bi-eye"></i></button>
-                                                        <button class="btn btn-edit" data-bs-toggle="tooltip"
-                                                            title="Edit"><i class="bi bi-pencil"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="small">11:00 AM</span>
-                                                </td>
-                                                <td><strong>Sarah Johnson</strong></td>
-                                                <td>9C</td>
-                                                <td>Cough, Cold</td>
-                                                <td><span
-                                                        class="badge badge-modern badge-status-recovered">Recovered</span>
-                                                </td>
-                                                <td>
-                                                    <div class="action-btns d-flex gap-1">
-                                                        <button class="btn btn-view" data-bs-toggle="tooltip"
-                                                            title="View"><i class="bi bi-eye"></i></button>
-                                                        <button class="btn btn-edit" data-bs-toggle="tooltip"
-                                                            title="Edit"><i class="bi bi-pencil"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="small">11:45 AM</span>
-                                                </td>
-                                                <td><strong>James Lee</strong></td>
-                                                <td>12A</td>
-                                                <td>Headache, Dizziness</td>
-                                                <td><span class="badge badge-modern badge-status-waiting">Waiting</span>
-                                                </td>
-                                                <td>
-                                                    <div class="action-btns d-flex gap-1">
-                                                        <button class="btn btn-view" data-bs-toggle="tooltip"
-                                                            title="View"><i class="bi bi-eye"></i></button>
-                                                        <button class="btn btn-edit" data-bs-toggle="tooltip"
-                                                            title="Edit"><i class="bi bi-pencil"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="small">01:20 PM</span>
-                                                </td>
-                                                <td><strong>Emily Davis</strong></td>
-                                                <td>10B</td>
-                                                <td>Allergy, Rash</td>
-                                                <td><span
-                                                        class="badge badge-modern badge-status-treatment">Treatment</span>
-                                                </td>
-                                                <td>
-                                                    <div class="action-btns d-flex gap-1">
-                                                        <button class="btn btn-view" data-bs-toggle="tooltip"
-                                                            title="View"><i class="bi bi-eye"></i></button>
-                                                        <button class="btn btn-edit" data-bs-toggle="tooltip"
-                                                            title="Edit"><i class="bi bi-pencil"></i></button>
-                                                    </div>
-                                                </td>
+                                                <td colspan="6" class="text-center py-4 text-muted">Loading recent
+                                                    visitors...</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -608,7 +497,7 @@
                     <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
                         <span><i class="bi bi-table me-2 text-primary-custom"></i> Visitor
                             Records</span>
-                        <button class="btn btn-sm btn-modern btn-modern-primary">
+                        <button class="btn btn-sm btn-modern btn-modern-primary" type="button" id="exportVisitorBtn">
                             <i class="bi bi-download me-1"></i> Export
                         </button>
                     </div>
