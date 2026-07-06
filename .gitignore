@@ -1,2 +1,3 @@
 config.php
-assets/uploads/
+/assets/uploads/
+/vendor/

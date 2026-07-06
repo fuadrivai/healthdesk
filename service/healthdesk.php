@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 function sendJsonResponse(array $payload, int $statusCode = 200): void
 {
@@ -138,75 +139,75 @@ function getVisitors(array $filters = []): array
 	return $rows;
 }
 
-function escapeExcelCell($value): string
-{
-	$text = (string)($value ?? '');
-	if ($text !== '' && preg_match('/^[=+\-@]/', $text) === 1) {
-		$text = "'" . $text;
-	}
-
-	return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-}
-
 function outputVisitorExcel(array $filters = []): void
 {
+	$spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+	$sheet = $spreadsheet->getActiveSheet();
+	$sheet->setTitle('Visitors');
+
 	$rows = getVisitors($filters);
-	$fileName = 'visitor_export_' . date('Ymd_His') . '.xls';
+	$fileName = 'visitor_export_' . date('Ymd_His') . '.xlsx';
 
-	header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-	header('Content-Disposition: attachment; filename="' . $fileName . '"');
-	header('Pragma: no-cache');
-	header('Expires: 0');
+	$sheet->fromArray([
+		'No',
+		'Name',
+		'Level',
+		'Grade',
+		'Category',
+		'Date',
+		'Time',
+		'Accidental',
+		'Status',
+		'Result',
+		'Item Used',
+		'Note',
+	], null, 'A1');
 
-	echo "<html><head><meta charset=\"UTF-8\"></head><body>";
-	echo '<table border="1">';
-	echo '<thead><tr>';
-	echo '<th>No</th>';
-	echo '<th>Name</th>';
-	echo '<th>Level</th>';
-	echo '<th>Grade</th>';
-	echo '<th>Category</th>';
-	echo '<th>Date</th>';
-	echo '<th>Time</th>';
-	echo '<th>Accidental</th>';
-	echo '<th>Status</th>';
-	echo '<th>Result</th>';
-	echo '<th>Item Used</th>';
-	echo '<th>Note</th>';
-	echo '</tr></thead>';
-	echo '<tbody>';
-
-	if (count($rows) === 0) {
-		echo '<tr><td colspan="12">No visitor data found.</td></tr>';
-	} else {
-		foreach ($rows as $index => $row) {
-			$statusCode = (int)($row['status'] ?? 0);
-			$statusLabel = 'Waiting';
-			if ($statusCode === 1) {
-				$statusLabel = 'Treatment';
-			} elseif ($statusCode === 2) {
-				$statusLabel = 'Recovered';
-			}
-
-			echo '<tr>';
-			echo '<td>' . ($index + 1) . '</td>';
-			echo '<td>' . escapeExcelCell($row['name'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['level'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['grade'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['category_name'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['date'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['time'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['accidental'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($statusLabel) . '</td>';
-			echo '<td>' . escapeExcelCell($row['result'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['item_used'] ?? '') . '</td>';
-			echo '<td>' . escapeExcelCell($row['note'] ?? '') . '</td>';
-			echo '</tr>';
+	$excelRows = [];
+	foreach ($rows as $index => $row) {
+		$statusCode = (int)($row['status'] ?? 0);
+		$statusLabel = 'Waiting';
+		if ($statusCode === 1) {
+			$statusLabel = 'Treatment';
+		} elseif ($statusCode === 2) {
+			$statusLabel = 'Recovered';
 		}
+
+		$excelRows[] = [
+			$index + 1,
+			(string)($row['name'] ?? ''),
+			(string)($row['level'] ?? ''),
+			(string)($row['grade'] ?? ''),
+			(string)($row['category_name'] ?? ''),
+			(string)($row['date'] ?? ''),
+			(string)($row['time'] ?? ''),
+			(string)($row['accidental'] ?? ''),
+			$statusLabel,
+			(string)($row['result'] ?? ''),
+			(string)($row['item_used'] ?? ''),
+			(string)($row['note'] ?? ''),
+		];
 	}
 
-	echo '</tbody></table>';
-	echo '</body></html>';
+	if (count($excelRows) > 0) {
+		$sheet->fromArray($excelRows, null, 'A2');
+	}
+
+	$sheet->getStyle('A1:L1')->getFont()->setBold(true);
+	$sheet->freezePane('A2');
+	foreach (range('A', 'L') as $column) {
+		$sheet->getColumnDimension($column)->setAutoSize(true);
+	}
+
+	header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+	header('Content-Disposition: attachment; filename="' . $fileName . '"');
+	header('Cache-Control: max-age=0');
+	header('Pragma: public');
+
+	$writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+	$writer->save('php://output');
+	$spreadsheet->disconnectWorksheets();
+	unset($spreadsheet);
 	exit;
 }
 
