@@ -150,16 +150,17 @@ function outputVisitorExcel(array $filters = []): void
 
 	$sheet->fromArray([
 		'No',
+		'xendit',
+		'NIS',
 		'Name',
 		'Level',
 		'Grade',
 		'Category',
-		'Date',
-		'Time',
+		'Date Time',
 		'Accidental',
-		'Status',
-		'Result',
+		'Intervention',
 		'Item Used',
+		'Result',
 		'Note',
 	], null, 'A1');
 
@@ -175,16 +176,17 @@ function outputVisitorExcel(array $filters = []): void
 
 		$excelRows[] = [
 			$index + 1,
+			(string)($row['xendit'] ?? ''),
+			(string)($row['nis'] ?? ''),
 			(string)($row['name'] ?? ''),
 			(string)($row['level'] ?? ''),
 			(string)($row['grade'] ?? ''),
 			(string)($row['category_name'] ?? ''),
-			(string)($row['date'] ?? ''),
-			(string)($row['time'] ?? ''),
+			(string)($row['date'] ?? '') . ' ' . (string)($row['time'] ?? ''),
 			(string)($row['accidental'] ?? ''),
-			$statusLabel,
-			(string)($row['result'] ?? ''),
+			(string)($row['intervention'] ?? ''),
 			(string)($row['item_used'] ?? ''),
+			(string)($row['result'] ?? ''),
 			(string)($row['note'] ?? ''),
 		];
 	}
